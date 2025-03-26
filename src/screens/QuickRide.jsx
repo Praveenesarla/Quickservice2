@@ -11,6 +11,15 @@ import {
   FlatList,
   Button,
 } from 'react-native';
+import {CFPaymentGatewayService} from 'react-native-cashfree-pg-sdk';
+import {
+  CFDropCheckoutPayment,
+  CFEnvironment,
+  CFPaymentComponentBuilder,
+  CFPaymentModes,
+  CFSession,
+  CFThemeBuilder,
+} from 'cashfree-pg-api-contract';
 import auth from '@react-native-firebase/auth';
 import {
   GestureHandlerRootView,
@@ -46,9 +55,18 @@ import AddressView from '../components/MapViewHeader/AddressView';
 import OTPDisplay from '../components/MapViewHeader/OTPDisplay';
 import BackButton from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
-import {bookRide, cancelRide, getVehicleRides} from '../api';
+import {
+  bookRide,
+  cancelRide,
+  createOrder,
+  getVehicleRides,
+  payRide,
+  ridePaymentSuccess,
+} from '../api';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PayRideCard from '../components/MapViewBody/PayRide';
+import PayNowModal from '../components/MapViewBody/PayNowModal';
 
 const {height} = Dimensions.get('window');
 
@@ -88,7 +106,8 @@ const QuickRide = ({route}) => {
   const [destinationPlace, setDestination] = useState('');
   const [fromLocationString, setFromLocationString] = useState('');
   const [rideDetails, setRideDetails] = useState('');
-  const [riderId, setRiderId] = useState('VWi9S6aB6QNSB0AqGJiQKszAjby1');
+  const [orderData, setOrderData] = useState(null);
+  const [rideId, setRideId] = useState('a2jcebkE2BoshjDQQPra');
   const [status, setStatus] = useState('places');
   const [vehicles, setVehilces] = useState({});
   const [toLocation, setToLocation] = useState({});
@@ -96,44 +115,173 @@ const QuickRide = ({route}) => {
   const [isRideBooked, setIsRideBooked] = useState(true);
   const [selectedRide, setSelectedRide] = useState(null);
   const [rideData, setRideData] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
   const ref = useRef();
   const [modalVisible, setModalVisible] = useState(false);
   const [header, setHeader] = useState('rider');
   const [rideOptions2, ssetRideOptions] = useState([]);
   const [distance, setDistance] = useState('');
+  const [payModal, setPayModal] = useState(false);
+
+  console.log('userDetails', userData);
+  console.log('ride Data', rideData);
 
   useEffect(() => {
     ref.current?.setAddressText('Some Text');
   }, []);
 
-  useEffect(() => {
-    if (!riderId) return;
-    console.log('Searching for ride with rider_id:', riderId);
+  const updateStatus = (status, isSuccess = false) => {
+    setPaymentStatus(status);
+    console.log(
+      `Payment ${isSuccess ? 'Successful' : 'Failed'}:`,
+      JSON.stringify(status),
+    );
+  };
 
-    const ridesCollectionRef = firestore()
+  useEffect(() => {
+    const onReceivedEvent = (eventName, map) => {
+      console.log(
+        'Event received on screen: ' +
+          eventName +
+          ' map: ' +
+          JSON.stringify(map),
+      );
+    };
+
+    const onVerify = orderId => {
+      console.log('userData4', userData);
+      console.log('Payment Successful for Order ID:', orderId);
+      updateStatus(`Payment Successful for Order ID: ${orderId}`, true);
+      paymentSucess();
+      // paymentOrderStatus(addAmount, walletData, uid, userData);
+    };
+
+    const onError = (error, orderId) => {
+      console.log(
+        'Payment Failed:',
+        JSON.stringify(error),
+        '\nOrder ID:',
+        orderId,
+      );
+      updateStatus(`Payment Failed: ${error.message || JSON.stringify(error)}`);
+    };
+
+    CFPaymentGatewayService.setEventSubscriber({onReceivedEvent});
+    CFPaymentGatewayService.setCallback({onVerify, onError});
+
+    return () => {
+      console.log('UNMOUNTED');
+      CFPaymentGatewayService.removeCallback();
+      CFPaymentGatewayService.removeEventSubscriber();
+    };
+  }, []);
+
+  const paymentSucess = async () => {
+    try {
+      const response = await ridePaymentSuccess(user.uid, rideData.id);
+      console.log('paymnet sucesss response', response.data);
+      setStatus('Finished');
+      setPayModal(false);
+    } catch (error) {
+      console.log('paynet success api', error);
+    }
+  };
+
+  const startCreateOrder = async () => {
+    try {
+      const orderData = {
+        amount: rideData.rate,
+        uid: userData.uid,
+        name: userData.displayName,
+        email: userData.email || 'esarlapraveen@gmail.com',
+        phone: '8186827673' || userData.phoneNumber,
+      };
+
+      console.log('createOrder', orderData);
+
+      const response = await createOrder(orderData);
+
+      console.log('responseOFOrder', response.data);
+      setOrderData(response.data);
+      _startCheckout();
+    } catch (error) {
+      console.error('Error creating order:', error);
+    }
+  };
+
+  const _startCheckout = async () => {
+    try {
+      const session = getSession();
+      const paymentModes = new CFPaymentComponentBuilder()
+        .add(CFPaymentModes.CARD)
+        .add(CFPaymentModes.UPI)
+        .add(CFPaymentModes.NB)
+        .add(CFPaymentModes.WALLET)
+        .add(CFPaymentModes.PAY_LATER)
+        .build();
+
+      const theme = new CFThemeBuilder()
+        .setNavigationBarBackgroundColor('#94ee95')
+        .setNavigationBarTextColor('#FFFFFF')
+        .setButtonBackgroundColor('#FFC107')
+        .setButtonTextColor('#FFFFFF')
+        .setPrimaryTextColor('#212121')
+        .setSecondaryTextColor('#757575')
+        .build();
+
+      const dropPayment = new CFDropCheckoutPayment(
+        session,
+        paymentModes,
+        theme,
+      );
+      console.log(JSON.stringify(dropPayment));
+      CFPaymentGatewayService.doPayment(dropPayment);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const getSession = () => {
+    const sessionId = orderData.payment_session_id;
+    const orderId = orderData.order_id;
+
+    console.log('Session ID:', sessionId);
+    console.log('Order ID:', orderId);
+
+    return new CFSession(sessionId, orderId, CFEnvironment.SANDBOX);
+  };
+
+  useEffect(() => {
+    if (!rideId) return;
+
+    console.log('Fetching ride with rideId:', rideId);
+
+    const rideDocRef = firestore()
       .collection('all_rides')
       .doc('Active')
-      .collection('rides');
+      .collection('rides')
+      .doc(rideId);
 
-    const unsubscribe = ridesCollectionRef
-      .where('rider_id', '==', riderId)
-      .limit(1)
-      .onSnapshot(snapshot => {
-        if (!snapshot.empty) {
-          const rideData = {
-            id: snapshot.docs[0].id,
-            ...snapshot.docs[0].data(),
-          };
-          setRideData(rideData);
-          console.log('Ride found:', rideData);
-        } else {
-          console.log('No ride found for this rider_id');
-        }
-      });
+    const unsubscribe = rideDocRef.onSnapshot(docSnapshot => {
+      if (docSnapshot.exists) {
+        const rideDetails = {
+          id: docSnapshot.id,
+          ...docSnapshot.data(),
+        };
+        setRideData(rideDetails);
+        setStatus(rideDetails.status);
+        console.log('Ride details:', rideDetails);
+      } else {
+        console.log('No ride found with this rideId');
+        setRideData(null);
+        setStatus(null);
+      }
+    });
 
     return () => unsubscribe();
-  }, [riderId]);
+  }, [rideId]);
 
+  // Track ride status updates in real-time
   useEffect(() => {
     if (!rideData?.id) return;
 
@@ -150,11 +298,17 @@ const QuickRide = ({route}) => {
         const updatedStatus = docSnapshot.data().status;
         setStatus(updatedStatus); // Store the updated status
         console.log(`Ride status updated: ${updatedStatus}`);
+
+        if (updatedStatus === 'New') {
+          setModalVisible(true);
+        } else {
+          setModalVisible(false);
+        }
       }
     });
 
     return () => unsubscribe();
-  }, [rideData.id]);
+  }, [rideData?.id]);
 
   const handleCancelRide = () => {
     console.log('pressed');
@@ -167,6 +321,16 @@ const QuickRide = ({route}) => {
 
   const formatLatLong = (lat, lng) => {
     return `${lat},${lng}`;
+  };
+
+  const handleWallet = async () => {
+    try {
+      const response = await payRide(userData.uid, rideId);
+      console.log('response of handle wallet', response);
+      setPayModal(false);
+    } catch (error) {
+      console.log('Errror of handle wallet', error);
+    }
   };
 
   const handleBackPress = () => {
@@ -212,6 +376,8 @@ const QuickRide = ({route}) => {
   const secondViewCollapsedHeight = height * 0.38;
   const expandedPosition = firstViewExpandedHeight - firstViewInitialHeight;
 
+  console.log('rideId', rideId);
+
   const translateY = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
@@ -247,13 +413,17 @@ const QuickRide = ({route}) => {
     borderTopRightRadius: 20,
   }));
 
-  // const handleBookRide = () => {
-  //   setModalVisible(true);
-  //   setTimeout(() => {
-  //     setModalVisible(false);
-  //     setStatus('rider');
-  //   }, 2000);
-  // };
+  const handlePayNow = () => {
+    setPayModal(true);
+  };
+
+  const handleBookRide2 = () => {
+    setModalVisible(true);
+    setTimeout(() => {
+      setModalVisible(false);
+      setStatus('rider');
+    }, 2000);
+  };
 
   const handleBookRide = (vehicle, price) => {
     console.log(`Booking ride for: ${vehicle} at ₹${price}`);
@@ -334,8 +504,8 @@ const QuickRide = ({route}) => {
     try {
       const value = await AsyncStorage.getItem('auth');
       const convert = JSON.parse(value);
-      setUserData(value);
-      console.log('userData', convert);
+      setUserData(convert);
+      console.log('userData2', convert);
       return convert;
     } catch (error) {
       console.error('Error retrieving data:', error);
@@ -379,9 +549,9 @@ const QuickRide = ({route}) => {
       vehicleType: vehicle,
     };
     try {
-      const response = await bookRide(data);
-      riderId(response.rideId);
-      console.log('gettingBookRide', response);
+      // const response = await bookRide(data);
+      // const rideIdFromRes = response.rideId;
+      // setRideId(response.rideId);
     } catch (error) {
       console.log('RideBooking', error);
     }
@@ -448,7 +618,7 @@ const QuickRide = ({route}) => {
               <AddressView />
             ) : status === 'rider' ? (
               <RiderDetails />
-            ) : status === 'otp' ? (
+            ) : status === 'New' ? (
               <OTPDisplay />
             ) : null}
 
@@ -483,17 +653,41 @@ const QuickRide = ({route}) => {
                 isRideBooked={true}
                 onPressBookRide={handleCancelRide}
               />
-            ) : (
-              <RideDetailsCard
+            ) : status === 'Started' ? (
+              <PayRideCard
                 driverName="John Doe"
-                driverRole="Driver"
-                fare="₹120"
-                vehicleNumber="MH 12 AB 3456"
                 vehicleName="Toyota Innova"
-                isRideBooked={true}
-                onPressBookRide={handleCancelRide}
+                vehicleNumber="MH 12 AB 3456"
+                estimatedTime="10 min"
+                onPressPayNow={handlePayNow}
+              />
+            ) : (
+              <FlatList
+                contentContainerStyle={{
+                  gap: 10,
+                  paddingVertical: responsive.padding(10),
+                }}
+                data={vehicles}
+                keyExtractor={item => item.id.toString()}
+                renderItem={({item}) => (
+                  <QuickMoto
+                    vehicle={item.vehicle}
+                    price={item.price}
+                    originalPrice={item.originalPrice}
+                    isSelected={selectedRide === item.vehicle}
+                    onPress={handleSelectRide}
+                    onBookRide={handleBookRide}
+                  />
+                )}
               />
             )}
+
+            <PayNowModal
+              visible={payModal}
+              onClose={() => setPayModal(false)}
+              onPayOnline={startCreateOrder}
+              onPayWithWallet={handleWallet}
+            />
           </ScrollView>
         </Animated.View>
       </View>

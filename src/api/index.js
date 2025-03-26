@@ -183,6 +183,7 @@ export const createOrder = async data => {
 };
 
 export const getVehicleRides = async distance => {
+  console.log('passed distance', distance);
   console.log('passed data', distance);
   try {
     const response = await APIClient.get('/getVehicleRates', {
@@ -210,5 +211,28 @@ export const cancelRide = async data => {
     return response.data;
   } catch (error) {
     console.log('Error while cancel Ride', error);
+  }
+};
+
+export const ridePaymentSuccess = async (uid, rideId) => {
+  try {
+    const response = await APIClient.get('/ride-payment-success', {
+      params: {uid, rideId},
+    });
+    console.log('response', response.data);
+    return response.data;
+  } catch (error) {
+    console.log('ride Paymnet Success', error);
+  }
+};
+
+export const payRide = async (uid, rideId) => {
+  try {
+    const response = await APIClient.get('/payRide', {
+      params: {uid, rideId},
+    });
+    return response.data;
+  } catch (error) {
+    console.log('Pay ride errror', error);
   }
 };
