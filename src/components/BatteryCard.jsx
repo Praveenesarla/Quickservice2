@@ -12,8 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import responsive from '../utils/responsive';
 import {addService, removeService} from '../api';
 
-export const BatteryCard = ({name, warranty, time, ol, image, id}) => {
-  console.log('item data', id, name, image);
+export const BatteryCard = ({name, warranty, time, ol, image, tabs, id}) => {
+  console.log('item data', id, name, image, warranty, time);
   const [uid, setUid] = useState('');
   const [cart, setCart] = useState([]);
 
@@ -74,19 +74,27 @@ export const BatteryCard = ({name, warranty, time, ol, image, id}) => {
     <View style={styles.cardContainer}>
       <Text style={styles.name}>{name}</Text>
 
-      <View style={styles.infoContainer}>
+      {/* <View style={styles.infoContainer}>
         <Text style={styles.infoText}>{time}</Text>
         <Text style={styles.infoText}>{warranty} months warranty</Text>
-      </View>
+      </View> */}
+      <FlatList
+        contentContainerStyle={{gap: 3}}
+        horizontal
+        data={tabs}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({item}) => <Text style={styles.infoText}>{item}</Text>}
+      />
 
       <View style={styles.detailsContainer}>
         <FlatList
+          contentContainerStyle={{width: '50%'}}
           data={ol}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({item}) => (
             <View style={styles.featureItem}>
               <Text style={styles.bullet}>•</Text>
-              <Text style={styles.featureText} numberOfLines={1}>
+              <Text style={styles.featureText} numberOfLines={3}>
                 {item}
               </Text>
             </View>
@@ -128,7 +136,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontFamily: 'Regular',
     color: '#B82929',
-    fontSize: responsive.fontSize(10),
+    fontSize: responsive.fontSize(8),
   },
   detailsContainer: {
     flexDirection: 'row',
@@ -148,6 +156,7 @@ const styles = StyleSheet.create({
     fontSize: responsive.fontSize(6),
     marginLeft: responsive.margin(5),
     color: '#000000',
+    width: '65%',
   },
   imageContainer: {
     justifyContent: 'center',

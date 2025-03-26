@@ -16,6 +16,7 @@ import {deleteAccount, getUserDetails, saveUserDetails} from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {useUser} from '../context/UserContext';
+import auth from '@react-native-firebase/auth';
 
 const ProfileScreen = () => {
   const [userInfo, setUserInfo] = useState({
@@ -27,7 +28,7 @@ const ProfileScreen = () => {
     memberId: 'Q274749P892',
     vehicle: 'Honda',
     refer: '',
-    orders: 2,
+    orders: '',
   });
   const [userData, setUserData] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -103,6 +104,7 @@ const ProfileScreen = () => {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('auth');
+      await auth().signOut();
       setUser(null);
 
       console.log(' User logged out');
@@ -167,7 +169,7 @@ const ProfileScreen = () => {
         <InfoRow
           label="Member ID"
           value={userData?.memberId}
-          onPress={() => handleEdit('memberId')}
+          // onPress={() => handleEdit('memberId')}
         />
         <InfoRow
           label="Vehicle Name"

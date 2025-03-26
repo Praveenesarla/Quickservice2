@@ -133,105 +133,147 @@ const OrderStatus = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.flexContainer}>
-        <Icon
-          onPress={() => navigation.goBack()}
-          size={responsive.fontSize(25)}
-          color={'#000'}
-          name="keyboard-backspace"
-        />
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
-      </View>
+    <>
+      {ordersList.length > 0 ? (
+        <View style={styles.container}>
+          <View style={styles.flexContainer}>
+            <Icon
+              onPress={() => navigation.goBack()}
+              size={responsive.fontSize(25)}
+              color={'#000'}
+              name="keyboard-backspace"
+            />
+            <Image source={require('../assets/logo.png')} style={styles.logo} />
+          </View>
 
-      <View style={styles.contentContainer}>
-        <Text style={styles.orderStatusText}>Order Status</Text>
+          <View style={styles.contentContainer}>
+            <Text style={styles.orderStatusText}>Order Status</Text>
 
-        {selectedOrder && (
-          <>
-            <View style={styles.orderDetailsContainer}>
-              <View style={styles.row}>
-                <View style={styles.column}>
-                  <Text style={styles.orderTitle}>Order ID</Text>
-                  <Text style={styles.orderValue}>{selectedOrder.orderId}</Text>
+            {selectedOrder && (
+              <>
+                <View style={styles.orderDetailsContainer}>
+                  <View style={styles.row}>
+                    <View style={styles.column}>
+                      <Text style={styles.orderTitle}>Order ID</Text>
+                      <Text style={styles.orderValue}>
+                        {selectedOrder.orderId}
+                      </Text>
+                    </View>
+                    <View style={styles.column}>
+                      <Text style={styles.orderTitle}>Payment Amount</Text>
+                      <Text style={styles.orderValue}>N/A</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.column}>
-                  <Text style={styles.orderTitle}>Payment Amount</Text>
-                  <Text style={styles.orderValue}>N/A</Text>
+                <View style={styles.orderDetailsContainer}>
+                  <View style={styles.row}>
+                    <View style={styles.column}>
+                      <Text style={styles.orderTitle}>Vehicle</Text>
+                      <Text style={styles.orderValue}>
+                        {selectedOrder?.vehicleNumber}
+                      </Text>
+                    </View>
+                    <View style={styles.column}>
+                      <Text style={styles.orderTitle}>Service</Text>
+                      <Text style={styles.orderValue}>N/A</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
-            <View style={styles.orderDetailsContainer}>
-              <View style={styles.row}>
-                <View style={styles.column}>
-                  <Text style={styles.orderTitle}>Vehicle</Text>
-                  <Text style={styles.orderValue}>
-                    {selectedOrder?.vehicleNumber}
-                  </Text>
-                </View>
-                <View style={styles.column}>
-                  <Text style={styles.orderTitle}>Service</Text>
-                  <Text style={styles.orderValue}>N/A</Text>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
-
-        <View style={styles.rowBetween}>
-          {selectedOrder && (
-            <VerticalStepsIndicator currentStatus={selectedOrder.status} />
-          )}
-
-          {carImage ? (
-            <View style={styles.imageUploadContainer}>
-              <Ionicons
-                style={styles.icon}
-                color="#B82929"
-                name="checkmark-circle"
-                size={60}
-              />
-              <TouchableOpacity
-                onPress={uploadingCarImage}
-                style={styles.uploadButton}>
-                <Text style={styles.uploadButtonText}>Upload</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={() => pickImage(setCarImage)}
-              style={styles.imagePickerContainer}>
-              <Image
-                source={require('../assets/uploadImage.png')}
-                style={styles.icon2}
-              />
-              <Text>Upload Image (optionally)</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Your Orders Section */}
-        <View>
-          <Text style={styles.yourOrdersText}>Your Orders</Text>
-          <FlatList
-            contentContainerStyle={styles.ordersListContainer}
-            data={ordersList}
-            keyExtractor={item => item.id}
-            renderItem={({item}) => (
-              <TouchableOpacity onPress={() => setSelectedOrder(item)}>
-                <OrderCard
-                  orderId={item.orderId}
-                  bookingDate={item.bookingDate}
-                  vehicle={item.vehicleNumber}
-                  status={item.status}
-                  selected={selectedOrder?.orderId === item?.orderId}
-                />
-              </TouchableOpacity>
+              </>
             )}
-          />
+
+            <View style={styles.rowBetween}>
+              {selectedOrder && (
+                <VerticalStepsIndicator currentStatus={selectedOrder.status} />
+              )}
+
+              {carImage ? (
+                <View style={styles.imageUploadContainer}>
+                  <Ionicons
+                    style={styles.icon}
+                    color="#B82929"
+                    name="checkmark-circle"
+                    size={60}
+                  />
+                  <TouchableOpacity
+                    onPress={uploadingCarImage}
+                    style={styles.uploadButton}>
+                    <Text style={styles.uploadButtonText}>Upload</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => pickImage(setCarImage)}
+                  style={styles.imagePickerContainer}>
+                  <Image
+                    source={require('../assets/uploadImage.png')}
+                    style={styles.icon2}
+                  />
+                  <Text>Upload Image (optionally)</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Your Orders Section */}
+            <View>
+              <Text style={styles.yourOrdersText}>Your Orders</Text>
+              <FlatList
+                contentContainerStyle={styles.ordersListContainer}
+                data={ordersList}
+                keyExtractor={item => item.id}
+                renderItem={({item}) => (
+                  <TouchableOpacity onPress={() => setSelectedOrder(item)}>
+                    <OrderCard
+                      orderId={item.orderId}
+                      bookingDate={item.bookingDate}
+                      vehicle={item.vehicleNumber}
+                      status={item.status}
+                      selected={selectedOrder?.orderId === item?.orderId}
+                    />
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
+      ) : (
+        <View style={styles.container}>
+          <View style={styles.flexContainer}>
+            <Icon
+              onPress={() => navigation.goBack()}
+              size={responsive.fontSize(25)}
+              color={'#000'}
+              name="keyboard-backspace"
+            />
+            <Image source={require('../assets/logo.png')} style={styles.logo} />
+          </View>
+          <View style={{justifyContent: 'center', flex: 1}}>
+            <Text
+              style={{
+                color: '#B82929',
+                fontFamily: 'Outfit-Black',
+                fontSize: responsive.fontSize(18),
+                textAlign: 'center',
+                marginBottom: responsive.margin(30),
+              }}>
+              No Orders Have Been Placed
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate()}></TouchableOpacity>
+            <Text
+              style={{
+                color: '#B82929',
+                fontFamily: 'Outfit-Black',
+                fontSize: responsive.fontSize(16),
+                textAlign: 'center',
+                marginBottom: responsive.margin(30),
+              }}>
+              Go to Services
+            </Text>
+          </View>
+        </View>
+      )}
+    </>
   );
 };
 
@@ -280,6 +322,7 @@ const styles = StyleSheet.create({
     color: '#161616',
   },
   orderValue: {
+    color: '#161616',
     fontFamily: 'Outfit-Light',
     fontSize: responsive.fontSize(10),
   },

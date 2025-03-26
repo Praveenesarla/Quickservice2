@@ -227,7 +227,6 @@ const ServicesBookNow = () => {
       <View style={styles.bottomContainer}>
         <View style={styles.serviceHeader}>
           <Text style={styles.selectedService}>Selected Service</Text>
-          <Text style={styles.editText}>Edit</Text>
         </View>
       </View>
 

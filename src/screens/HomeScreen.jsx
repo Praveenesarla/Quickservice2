@@ -24,7 +24,10 @@ const HomeScreen = () => {
       style={styles.container}>
       <Header screen="Services" />
       <View style={styles.container}>
-        <Banner />
+        <View style={{paddingBottom: responsive.padding(20)}}>
+          <Banner />
+        </View>
+
         <ServiceList />
       </View>
       <TouchableOpacity

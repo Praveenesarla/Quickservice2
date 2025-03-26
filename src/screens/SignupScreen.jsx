@@ -249,7 +249,7 @@ const SignupScreen = () => {
 
       {/* Navigation to Login */}
       <View style={styles.loginContainer}>
-        <Text>Already have an account?</Text>
+        <Text style={{color: '#000000'}}>Already have an account?</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
           <Text style={styles.loginText}> Login</Text>
         </TouchableOpacity>

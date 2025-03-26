@@ -24,10 +24,13 @@ const GOOGLE_API_KEY = 'AIzaSyAvG0ZP37y_tEwcQiLaHaCTLR9ceMHbnJ0';
 
 const RidePickup = () => {
   const [location, setLocation] = useState(null);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const [address, setAddress] = useState('');
   const [manualLocation, setManualLocation] = useState('');
   const navigation = useNavigation();
-
+  const [fromAddress, setFromAddress] = useState('');
+  const [toAddress, setToAddress] = useState('');
   const requestLocationPermission = async () => {
     try {
       const granted = await PermissionsAndroid.request(
@@ -73,6 +76,9 @@ const RidePickup = () => {
     );
   };
 
+  console.log('from Address', fromAddress);
+  console.log('To Address', toAddress);
+
   const fetchAddress = async (lat, lng) => {
     try {
       const response = await fetch(
@@ -82,7 +88,11 @@ const RidePickup = () => {
       if (data.status === 'OK' && data.results.length > 0) {
         const formattedAddress = data.results[0].formatted_address;
         setAddress(formattedAddress);
-        console.log('Address:', formattedAddress);
+        setFromAddress({
+          location: {latitude: lat, longitude: lng},
+          address: formattedAddress,
+        });
+        console.log('Address:', fromAddress);
       } else {
         setAddress('No address found');
       }
@@ -102,46 +112,75 @@ const RidePickup = () => {
             </TouchableOpacity>
             <Text style={styles.headerText}>Your route</Text>
           </View>
-          <RideAdd width={23} height={23} />
+          {/* <RideAdd width={23} height={23} /> */}
         </View>
 
         {/* Pickup Location Input */}
         <View style={styles.inputContainer}>
           <SearchIcon />
-          <GooglePlacesAutocomplete
-            placeholder="From"
-            fetchDetails={true}
-            enablePoweredByContainer={false}
-            debounce={300}
-            styles={{
-              textInputContainer: {
-                flex: 1,
-                backgroundColor: 'transparent',
-              },
-              textInput: {
-                marginTop: responsive.margin(5),
-                height: responsive.height(40),
-                fontSize: 16,
-                backgroundColor: 'transparent',
-                borderBottomWidth: 0,
-              },
-              listView: {
-                position: 'absolute',
-                top: responsive.height(54),
-                width: '100%',
-                backgroundColor: 'white',
-                zIndex: 999,
-                borderRadius: 8,
-              },
-            }}
-            onPress={(data, details = null) => {
-              console.log('Selected Place:', data, details);
-            }}
-            query={{
-              key: 'AIzaSyAvG0ZP37y_tEwcQiLaHaCTLR9ceMHbnJ0',
-              language: 'en',
-            }}
-          />
+          <View
+            style={{
+              position: 'relative',
+              zIndex: 999,
+              flex: 1,
+              backgroundColor: '#fff',
+            }}>
+            <GooglePlacesAutocomplete
+              isRowScrollable={true}
+              placeholder="From"
+              fetchDetails={true}
+              numberOfLines={2}
+              enablePoweredByContainer={false}
+              debounce={300}
+              styles={{
+                textInputContainer: {
+                  flex: 1,
+                  backgroundColor: 'white',
+                  zIndex: 1, // Ensures input stays above other elements
+                },
+                textInput: {
+                  marginTop: responsive.margin(5),
+                  height: responsive.height(40),
+                  fontSize: 16,
+                  backgroundColor: 'transparent',
+                  borderBottomWidth: 0,
+                },
+                listView: {
+                  position: 'absolute',
+                  top: responsive.height(50),
+                  width: '100%',
+                  backgroundColor: 'white',
+                  borderRadius: 8,
+                  elevation: 4,
+                  shadowColor: '#000',
+                  shadowOffset: {width: 0, height: 3},
+                  shadowOpacity: 0.1,
+                  shadowRadius: 5,
+                  zIndex: 999, // Ensures dropdown appears above other views
+                },
+                description: {
+                  fontSize: 14,
+                  color: 'black',
+                  width: '60%',
+                },
+              }}
+              onPress={(data, details = null) => {
+                console.log({
+                  location: details.geometry.location,
+                  address: data.description,
+                });
+                setFromAddress({
+                  location: details.geometry.location,
+                  address: data.description,
+                });
+              }}
+              query={{
+                key: 'AIzaSyAvG0ZP37y_tEwcQiLaHaCTLR9ceMHbnJ0',
+                language: 'en',
+              }}
+            />
+          </View>
+
           <SearchInputMap style={styles.searchInputIcon} />
         </View>
 
@@ -157,26 +196,132 @@ const RidePickup = () => {
           }}>
           <LocationUnSelect />
           <Text style={styles.destinationText} numberOfLines={1}>
-            {address ? address : 'Destination'}
+            {fromAddress.address ? fromAddress.address : 'From'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.locationRow} onPress={getLocation}>
+          <CurrentLocation />
+          <Text style={styles.locationText}>
+            {location ? 'Location fetched' : 'My location'}
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.inputContainer}>
+          <SearchIcon />
+          <View
+            style={{
+              position: 'relative',
+              zIndex: 999,
+              flex: 1,
+              backgroundColor: '#fff',
+            }}>
+            <GooglePlacesAutocomplete
+              isRowScrollable={true}
+              placeholder="To"
+              fetchDetails={true}
+              numberOfLines={2}
+              enablePoweredByContainer={false}
+              debounce={300}
+              styles={{
+                textInputContainer: {
+                  flex: 1,
+                  backgroundColor: 'white',
+                  zIndex: 1,
+                },
+                textInput: {
+                  marginTop: responsive.margin(5),
+                  height: responsive.height(40),
+                  fontSize: 16,
+                  backgroundColor: 'transparent',
+                  borderBottomWidth: 0,
+                },
+                listView: {
+                  position: 'absolute',
+                  top: responsive.height(50),
+                  width: '100%',
+                  backgroundColor: 'white',
+                  borderRadius: 8,
+                  elevation: 4,
+                  shadowColor: '#000',
+                  shadowOffset: {width: 0, height: 3},
+                  shadowOpacity: 0.1,
+                  shadowRadius: 5,
+                  zIndex: 999, // Ensures dropdown appears above other views
+                },
+                description: {
+                  fontSize: 14,
+                  color: 'black',
+                  width: '60%',
+                },
+              }}
+              onPress={(data, details = null) => {
+                console.log({
+                  location: details.geometry.location,
+                  address: data.description,
+                });
+                setToAddress({
+                  location: details.geometry.location,
+                  address: data.description,
+                });
+              }}
+              query={{
+                key: 'AIzaSyAvG0ZP37y_tEwcQiLaHaCTLR9ceMHbnJ0',
+                language: 'en',
+              }}
+            />
+          </View>
+
+          <SearchInputMap style={styles.searchInputIcon} />
+        </View>
+
+        {/* Destination Card */}
+        <TouchableOpacity
+          style={styles.destinationContainer}
+          onPress={() => {
+            if (address) {
+              navigation.navigate('Ride', {location, address});
+            } else {
+              Alert.alert('Error', 'Please select a valid destination first.');
+            }
+          }}>
+          <LocationUnSelect />
+          <Text style={styles.destinationText} numberOfLines={1}>
+            {toAddress.address ? toAddress.address : 'To Address'}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Location Section */}
-      <TouchableOpacity style={styles.locationContainer} onPress={getLocation}>
-        <View style={styles.locationRow}>
-          <CurrentLocation />
-          <Text style={styles.locationText}>
-            {location ? 'Location fetched' : 'My location'}
-          </Text>
-        </View>
 
-        {/* Background Image */}
-        <ImageBackground
-          source={require('../../src/assets/logo.png')}
-          style={styles.backgroundImage}
-          resizeMode="contain"
-        />
+      {/* Background Image */}
+      <ImageBackground
+        source={require('../../src/assets/logo.png')}
+        style={styles.backgroundImage}
+        resizeMode="contain"
+      />
+      <TouchableOpacity
+        onPress={() => {
+          if (fromAddress || toAddress) {
+            navigation.navigate('Ride', {fromAddress, toAddress});
+          } else {
+            Alert.alert('Please select a valid Pick & Destination First.');
+          }
+        }}
+        style={{
+          width: '100%',
+          backgroundColor: '#B82929',
+          marginTop: 'auto',
+          height: responsive.height(45),
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+        <Text
+          style={{
+            color: '#fff',
+            fontFamily: 'Outfit-Bold',
+            fontSize: responsive.fontSize(20),
+          }}>
+          Get Raids
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -241,6 +386,7 @@ const styles = StyleSheet.create({
     gap: 5,
     alignItems: 'center',
     paddingLeft: responsive.padding(10),
+    zIndex: -1,
   },
   destinationText: {
     color: '#7B7A7A',
@@ -252,12 +398,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationRow: {
+    backgroundColor: '#fff',
     width: '100%',
     height: responsive.height(68),
     borderBottomWidth: 0.5,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    zIndex: -1,
   },
   locationText: {
     fontFamily: 'Outfit-Regular',
@@ -272,5 +420,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: responsive.height(20),
+    zIndex: -1,
   },
 });

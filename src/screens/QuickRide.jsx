@@ -72,7 +72,9 @@ const {height} = Dimensions.get('window');
 
 const QuickRide = ({route}) => {
   const user = auth().currentUser;
-  const {location, address} = route.params;
+  const {fromAddress, toAddress} = route.params;
+  console.log('fromAddress', fromAddress);
+  console.log('toAddress', toAddress);
   const navigation = useNavigation();
   const rideOptions = [
     {
@@ -137,6 +139,42 @@ const QuickRide = ({route}) => {
       JSON.stringify(status),
     );
   };
+
+  // Added New UseEeffect
+
+  useEffect(() => {
+    if (fromAddress && toAddress) {
+      let stringLocation = formatLatLong(
+        fromAddress.latitude,
+        fromAddress.longitude,
+      );
+      console.log('fromAddressString', stringLocation);
+      setFromLocationString(stringLocation);
+      let toStringLocation = formatLatLong(toAddress.lat, toAddress.lng);
+      console.log('toaddressString', toStringLocation);
+      setToLocationString(toStringLocation);
+    }
+  }, [fromAddress, toAddress]);
+
+  useEffect(() => {
+    if (fromLocationString && toLocationString) {
+      console.log('FromString', fromLocationString);
+      console.log('ToString', toLocationString);
+      const fetchDistance = async () => {
+        try {
+          const finalDistance = await getDistanceFromGoogle(
+            fromLocationString,
+            toLocationString,
+          );
+          console.log('data from googleApi', finalDistance);
+          setDistance(finalDistance);
+        } catch (error) {
+          console.error('Error fetching distance:', error);
+        }
+      };
+      fetchDistance();
+    }
+  }, [fromLocationString, toLocationString]);
 
   useEffect(() => {
     const onReceivedEvent = (eventName, map) => {
@@ -344,11 +382,16 @@ const QuickRide = ({route}) => {
   };
 
   useEffect(() => {
-    if (location) {
-      let stringLocation = formatLatLong(location.latitude, location.longitude);
+    if (fromAddress && toAddress) {
+      let stringLocation = formatLatLong(
+        fromAddress.latitude,
+        fromAddress.longitude,
+      );
       setFromLocationString(stringLocation);
+      let toStringLocation = formatLatLong(toAddress.lat, toAddress.lng);
+      setToLocationString(toStringLocation);
     }
-  }, [location]);
+  }, [fromAddress, toAddress]);
 
   useEffect(() => {
     if (fromLocationString && toLocationString) {
@@ -549,9 +592,9 @@ const QuickRide = ({route}) => {
       vehicleType: vehicle,
     };
     try {
-      // const response = await bookRide(data);
-      // const rideIdFromRes = response.rideId;
-      // setRideId(response.rideId);
+      const response = await bookRide(data);
+      const rideIdFromRes = response.rideId;
+      setRideId(response.rideId);
     } catch (error) {
       console.log('RideBooking', error);
     }

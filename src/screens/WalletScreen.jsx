@@ -152,7 +152,7 @@ const WalletScreen = () => {
 
       const response = await createOrder(orderData);
 
-      console.log('response', response);
+      console.log('response', response.data);
       setOrderData(response.data);
       _startCheckout();
     } catch (error) {
