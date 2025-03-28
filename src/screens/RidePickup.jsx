@@ -156,7 +156,7 @@ const RidePickup = () => {
                   shadowOffset: {width: 0, height: 3},
                   shadowOpacity: 0.1,
                   shadowRadius: 5,
-                  zIndex: 999, // Ensures dropdown appears above other views
+                  zIndex: 999,
                 },
                 description: {
                   fontSize: 14,
@@ -170,7 +170,10 @@ const RidePickup = () => {
                   address: data.description,
                 });
                 setFromAddress({
-                  location: details.geometry.location,
+                  location: {
+                    latitude: details.geometry.location.lat,
+                    longitude: details.geometry.location.lng,
+                  },
                   address: data.description,
                 });
               }}
@@ -210,22 +213,22 @@ const RidePickup = () => {
           <View
             style={{
               position: 'relative',
-              zIndex: 999,
+              zIndex: -1,
               flex: 1,
               backgroundColor: '#fff',
             }}>
             <GooglePlacesAutocomplete
+              listViewDisplayed
               isRowScrollable={true}
               placeholder="To"
               fetchDetails={true}
-              numberOfLines={2}
+              numberOfLines={3}
               enablePoweredByContainer={false}
               debounce={300}
               styles={{
                 textInputContainer: {
                   flex: 1,
                   backgroundColor: 'white',
-                  zIndex: 1,
                 },
                 textInput: {
                   marginTop: responsive.margin(5),
@@ -245,12 +248,13 @@ const RidePickup = () => {
                   shadowOffset: {width: 0, height: 3},
                   shadowOpacity: 0.1,
                   shadowRadius: 5,
-                  zIndex: 999, // Ensures dropdown appears above other views
+                  zIndex: 999,
                 },
                 description: {
                   fontSize: 14,
                   color: 'black',
-                  width: '60%',
+                  width: '100%',
+                  backgroundColor: '',
                 },
               }}
               onPress={(data, details = null) => {
@@ -259,7 +263,10 @@ const RidePickup = () => {
                   address: data.description,
                 });
                 setToAddress({
-                  location: details.geometry.location,
+                  location: {
+                    latitude: details.geometry.location.lat,
+                    longitude: details.geometry.location.lng,
+                  },
                   address: data.description,
                 });
               }}

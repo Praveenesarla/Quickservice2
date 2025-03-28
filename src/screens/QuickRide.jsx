@@ -31,7 +31,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
+import MapView, {Marker, Polyline, PROVIDER_GOOGLE} from 'react-native-maps';
 import {usePlacesAutocomplete} from 'react-native-google-places-sdk';
 
 import responsive from '../utils/responsive';
@@ -104,13 +104,13 @@ const QuickRide = ({route}) => {
   ];
   const [isFloatingViewVisible, setIsFloatingViewVisible] = useState(false);
   const [toLocationString, setToLocationString] = useState('');
-
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [destinationPlace, setDestination] = useState('');
   const [fromLocationString, setFromLocationString] = useState('');
   const [rideDetails, setRideDetails] = useState('');
   const [orderData, setOrderData] = useState(null);
-  const [rideId, setRideId] = useState('a2jcebkE2BoshjDQQPra');
-  const [status, setStatus] = useState('places');
+  const [rideId, setRideId] = useState('');
+  const [status, setStatus] = useState('List');
   const [vehicles, setVehilces] = useState({});
   const [toLocation, setToLocation] = useState({});
   const [userData, setUserData] = useState(null);
@@ -127,10 +127,97 @@ const QuickRide = ({route}) => {
 
   console.log('userDetails', userData);
   console.log('ride Data', rideData);
-
+  console.log('fromAddress', fromAddress);
+  console.log('toAddress', toAddress);
   useEffect(() => {
     ref.current?.setAddressText('Some Text');
   }, []);
+
+  // From Address to To Address Route
+
+  useEffect(() => {
+    if (fromAddress?.location && toAddress?.location) {
+      const origin = `${fromAddress.location.latitude},${fromAddress.location.longitude}`;
+      const destination = `${toAddress.location.latitude},${toAddress.location.longitude}`;
+
+      fetchRouteCoordinates(origin, destination);
+    }
+  }, [fromAddress, toAddress]);
+
+  const fetchRouteCoordinates = async (origin, destination) => {
+    const API_KEY = 'AIzaSyAvG0ZP37y_tEwcQiLaHaCTLR9ceMHbnJ0';
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${API_KEY}`;
+
+    try {
+      const response = await axios.get(url);
+      if (response.data.status === 'OK') {
+        const points = response.data.routes[0].overview_polyline.points;
+        const coordinates = decodePolyline(points);
+        setRouteCoordinates(coordinates);
+      } else {
+        console.error('Error fetching route:', response.data.error_message);
+      }
+    } catch (error) {
+      console.error('Error fetching route:', error);
+    }
+  };
+
+  const decodePolyline = (t, e = 5) => {
+    let points = [];
+    let index = 0,
+      lat = 0,
+      lng = 0;
+
+    while (index < t.length) {
+      let b,
+        shift = 0,
+        result = 0;
+      do {
+        b = t.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = t.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
+      lng += dlng;
+
+      points.push({
+        latitude: lat / Math.pow(10, e),
+        longitude: lng / Math.pow(10, e),
+      });
+    }
+
+    return points;
+  };
+
+  // From Address to To Address Route
+
+  useEffect(() => {
+    if (fromAddress?.location && toAddress?.location) {
+      const origin = formatLatLong(
+        fromAddress.location.latitude,
+        fromAddress.location.longitude,
+      );
+      const destination = formatLatLong(
+        toAddress.location.latitude,
+        toAddress.location.longitude,
+      );
+
+      console.log('Formatted origin:', origin);
+      console.log('Formatted destination:', destination);
+
+      getDistanceFromGoogle(origin, destination);
+    }
+  }, [fromAddress, toAddress]);
 
   const updateStatus = (status, isSuccess = false) => {
     setPaymentStatus(status);
@@ -141,40 +228,6 @@ const QuickRide = ({route}) => {
   };
 
   // Added New UseEeffect
-
-  useEffect(() => {
-    if (fromAddress && toAddress) {
-      let stringLocation = formatLatLong(
-        fromAddress.latitude,
-        fromAddress.longitude,
-      );
-      console.log('fromAddressString', stringLocation);
-      setFromLocationString(stringLocation);
-      let toStringLocation = formatLatLong(toAddress.lat, toAddress.lng);
-      console.log('toaddressString', toStringLocation);
-      setToLocationString(toStringLocation);
-    }
-  }, [fromAddress, toAddress]);
-
-  useEffect(() => {
-    if (fromLocationString && toLocationString) {
-      console.log('FromString', fromLocationString);
-      console.log('ToString', toLocationString);
-      const fetchDistance = async () => {
-        try {
-          const finalDistance = await getDistanceFromGoogle(
-            fromLocationString,
-            toLocationString,
-          );
-          console.log('data from googleApi', finalDistance);
-          setDistance(finalDistance);
-        } catch (error) {
-          console.error('Error fetching distance:', error);
-        }
-      };
-      fetchDistance();
-    }
-  }, [fromLocationString, toLocationString]);
 
   useEffect(() => {
     const onReceivedEvent = (eventName, map) => {
@@ -381,37 +434,25 @@ const QuickRide = ({route}) => {
     }
   };
 
-  useEffect(() => {
-    if (fromAddress && toAddress) {
-      let stringLocation = formatLatLong(
-        fromAddress.latitude,
-        fromAddress.longitude,
-      );
-      setFromLocationString(stringLocation);
-      let toStringLocation = formatLatLong(toAddress.lat, toAddress.lng);
-      setToLocationString(toStringLocation);
-    }
-  }, [fromAddress, toAddress]);
-
-  useEffect(() => {
-    if (fromLocationString && toLocationString) {
-      console.log('FromString', fromLocationString);
-      console.log('ToString', toLocationString);
-      const fetchDistance = async () => {
-        try {
-          const finalDistance = await getDistanceFromGoogle(
-            fromLocationString,
-            toLocationString,
-          );
-          console.log('data from googleApi', finalDistance);
-          setDistance(finalDistance);
-        } catch (error) {
-          console.error('Error fetching distance:', error);
-        }
-      };
-      fetchDistance();
-    }
-  }, [fromLocationString, toLocationString]);
+  // useEffect(() => {
+  //   if (fromLocationString && toLocationString) {
+  //     console.log('FromString', fromLocationString);
+  //     console.log('ToString', toLocationString);
+  //     const fetchDistance = async () => {
+  //       try {
+  //         const finalDistance = await getDistanceFromGoogle(
+  //           fromLocationString,
+  //           toLocationString,
+  //         );
+  //         console.log('data from googleApi', finalDistance);
+  //         setDistance(finalDistance);
+  //       } catch (error) {
+  //         console.error('Error fetching distance:', error);
+  //       }
+  //     };
+  //     fetchDistance();
+  //   }
+  // }, [fromLocationString, toLocationString]);
 
   const firstViewInitialHeight = height * 0.3;
   const secondViewInitialHeight = height * 0.7;
@@ -515,13 +556,13 @@ const QuickRide = ({route}) => {
           (key, index) => ({
             id: index,
             vehicle: key,
-            price: vehicleResponse.data[key].cost, // Cost from API
-            originalPrice: vehicleResponse.data[key].strike_cost, // Strike-through price from API
+            price: vehicleResponse.data[key].cost,
+            originalPrice: vehicleResponse.data[key].strike_cost,
           }),
         );
 
         setVehilces(ridevehicle);
-        setStatus('list');
+        setStatus('List');
 
         return distanceValue;
       } else {
@@ -570,19 +611,19 @@ const QuickRide = ({route}) => {
   };
 
   const gettingBookRide = async (vehicle, price, UserData) => {
-    console.log('place', destinationPlace);
-    console.log('Fromlocation', location);
-    console.log('Tolocation', toLocation);
+    // console.log('place', destinationPlace);
+    // console.log('Fromlocation', fromAddress);
+    // console.log('Tolocation', toLocation);
     console.log(userData);
     const data = {
       pick: {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        place: address,
+        latitude: fromAddress.location.latitude,
+        longitude: fromAddress.location.longitude,
+        place: fromAddress.address,
       },
       drop: {
-        latitude: toLocation.lat,
-        longitude: toLocation.lng,
+        latitude: toAddress.location.latitude,
+        longitude: toAddress.location.longitude,
         place: destinationPlace,
       },
       name: user.displayName,
@@ -611,16 +652,43 @@ const QuickRide = ({route}) => {
         <Animated.View style={[styles.topView, animatedTopViewStyle]}>
           <View style={styles.mapContainer}>
             <MapView
-              key={'AIzaSyAvG0ZP37y_tEwcQiLaHaCTLR9ceMHbnJ0'}
               provider={PROVIDER_GOOGLE}
               style={styles.map}
               region={{
-                latitude: 16.43815,
-                longitude: 81.0934,
+                latitude: fromAddress.location.latitude,
+                longitude: fromAddress.location.longitude,
                 latitudeDelta: 0.015,
                 longitudeDelta: 0.0121,
-              }}
-            />
+              }}>
+              {/* Add Polyline to display the route */}
+              {routeCoordinates.length > 0 && (
+                <Polyline
+                  coordinates={routeCoordinates}
+                  strokeWidth={4}
+                  strokeColor="blue"
+                />
+              )}
+
+              {/* Add Marker for the starting point */}
+              <Marker
+                coordinate={{
+                  latitude: fromAddress.location.latitude,
+                  longitude: fromAddress.location.longitude,
+                }}
+                title="Start"
+                description={fromAddress.address}
+              />
+
+              {/* Add Marker for the destination point */}
+              <Marker
+                coordinate={{
+                  latitude: toAddress.location.latitude,
+                  longitude: toAddress.location.longitude,
+                }}
+                title="Destination"
+                description={toAddress.address}
+              />
+            </MapView>
 
             <TouchableOpacity style={styles.floatingButton2}>
               <BackButton
@@ -636,7 +704,7 @@ const QuickRide = ({route}) => {
                     fontFamily: 'Outfit-Regular',
                     color: '#000000',
                   }}>
-                  355 Mills Extension, Emmetcester 18477
+                  {fromAddress.address}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -658,17 +726,18 @@ const QuickRide = ({route}) => {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             {status === 'List' ? (
-              <AddressView />
-            ) : status === 'rider' ? (
-              <RiderDetails />
+              <AddressView address={fromAddress.address} />
+            ) : status === 'Accepted' ? (
+              <OTPDisplay otp={rideData.otp} />
             ) : status === 'New' ? (
               <OTPDisplay />
             ) : null}
 
-            {status === 'places' ? (
-              <GoogleLocationSearch onPlaceSelected={onPressPlaces} />
-            ) : status === 'List' ? (
+            {status === 'List' ? (
               <FlatList
+                // ListHeaderComponent={
+                //   <AddressView address={fromAddress.address} />
+                // }
                 contentContainerStyle={{
                   gap: 10,
                   paddingVertical: responsive.padding(10),
@@ -688,19 +757,19 @@ const QuickRide = ({route}) => {
               />
             ) : status === 'Accepted' ? (
               <RideDetailsCard
-                driverName="John Doe"
+                driverName={rideData.rider_name}
                 driverRole="Driver"
-                fare="₹120"
-                vehicleNumber="MH 12 AB 3456"
-                vehicleName="Toyota Innova"
+                fare={rideData.rate}
+                vehicleNumber={rideData.rider_vehicleNumber}
+                vehicleName={rideData.rider_vehicleName}
                 isRideBooked={true}
                 onPressBookRide={handleCancelRide}
               />
             ) : status === 'Started' ? (
               <PayRideCard
-                driverName="John Doe"
-                vehicleName="Toyota Innova"
-                vehicleNumber="MH 12 AB 3456"
+                driverName={rideData.rider_name}
+                vehicleNumber={rideData.rider_vehicleNumber}
+                vehicleName={rideData.rider_vehicleName}
                 estimatedTime="10 min"
                 onPressPayNow={handlePayNow}
               />
