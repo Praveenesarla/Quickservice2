@@ -119,7 +119,7 @@ const QuickRide = ({route}) => {
   const [rideData, setRideData] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const ref = useRef();
-  const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(true);
   const [header, setHeader] = useState('rider');
   const [rideOptions2, ssetRideOptions] = useState([]);
   const [distance, setDistance] = useState('');
@@ -510,7 +510,7 @@ const QuickRide = ({route}) => {
   };
 
   const handleBookRide = (vehicle, price) => {
-    console.log(`Booking ride for: ${vehicle} at ₹${price}`);
+    gettingBookRide(vehicle, price, userData);
   };
 
   const getVehicleRidesList = async () => {
@@ -576,12 +576,11 @@ const QuickRide = ({route}) => {
   };
 
   const handleSelectRide = async (vehicle, price) => {
-    console.log('Selected Vehicle:', vehicle);
-    console.log('Price:', price);
-    const getAuthInfo = await getData();
-    console.log('authInfo', getAuthInfo);
+    // console.log('Selected Vehicle:', vehicle);
+    // console.log('Price:', price);
+    // const getAuthInfo = await getData();
+    // console.log('authInfo', getAuthInfo);
     setSelectedRide(vehicle);
-    gettingBookRide(vehicle, price, userData);
   };
 
   const getData = async key => {
@@ -596,19 +595,19 @@ const QuickRide = ({route}) => {
     }
   };
 
-  const onPressPlaces = async (data, details) => {
-    console.log('Selected Place Data:', data.description);
-    setDestination(data.description);
-    console.log('To:', details.geometry.location);
-    setToLocation(details.geometry.location);
-    const stringFormLocation = formatLatLong(
-      details.geometry.location.lat,
-      details.geometry.location.lng,
-    );
-    console.log('toStringHere', stringFormLocation);
-    setToLocationString(stringFormLocation);
-    setStatus('List');
-  };
+  // const onPressPlaces = async (data, details) => {
+  //   console.log('Selected Place Data:', data.description);
+  //   setDestination(data.description);
+  //   console.log('To:', details.geometry.location);
+  //   setToLocation(details.geometry.location);
+  //   const stringFormLocation = formatLatLong(
+  //     details.geometry.location.lat,
+  //     details.geometry.location.lng,
+  //   );
+  //   console.log('toStringHere', stringFormLocation);
+  //   setToLocationString(stringFormLocation);
+  //   setStatus('List');
+  // };
 
   const gettingBookRide = async (vehicle, price, UserData) => {
     // console.log('place', destinationPlace);
@@ -624,7 +623,7 @@ const QuickRide = ({route}) => {
       drop: {
         latitude: toAddress.location.latitude,
         longitude: toAddress.location.longitude,
-        place: destinationPlace,
+        place: toAddress.address,
       },
       name: user.displayName,
       phone: user.phoneNumber,
@@ -697,12 +696,14 @@ const QuickRide = ({route}) => {
                 size={40}
                 color="#000000"
               />
-              <View>
+              <View style={{width: '95%'}}>
                 <Text
+                  numberOfLines={1}
                   style={{
-                    fontSize: responsive.fontSize(12),
+                    fontSize: responsive.fontSize(10),
                     fontFamily: 'Outfit-Regular',
                     color: '#000000',
+                    width: '91%',
                   }}>
                   {fromAddress.address}
                 </Text>

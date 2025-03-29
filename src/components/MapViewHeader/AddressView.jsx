@@ -7,7 +7,9 @@ const AddressView = ({address = '2836 Waelchi Turnpike, East Leone 89676'}) => {
   return (
     <View style={styles.container}>
       <LocationDot />
-      <Text style={styles.text}>{address}</Text>
+      <Text style={styles.text} numberOfLines={2}>
+        {address}
+      </Text>
     </View>
   );
 };
@@ -21,9 +23,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: responsive.padding(15),
     gap: 14,
+    overflow: 'hidden',
   },
   text: {
-    fontSize: responsive.fontSize(12),
+    fontSize: responsive.fontSize(10),
+    width: '87%',
     color: '#000000',
   },
 });

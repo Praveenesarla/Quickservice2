@@ -188,7 +188,7 @@ const RidePickup = () => {
         </View>
 
         {/* Destination Card */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.destinationContainer}
           onPress={() => {
             if (address) {
@@ -201,7 +201,7 @@ const RidePickup = () => {
           <Text style={styles.destinationText} numberOfLines={1}>
             {fromAddress.address ? fromAddress.address : 'From'}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity style={styles.locationRow} onPress={getLocation}>
           <CurrentLocation />
           <Text style={styles.locationText}>
@@ -281,7 +281,7 @@ const RidePickup = () => {
         </View>
 
         {/* Destination Card */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.destinationContainer}
           onPress={() => {
             if (address) {
@@ -294,7 +294,7 @@ const RidePickup = () => {
           <Text style={styles.destinationText} numberOfLines={1}>
             {toAddress.address ? toAddress.address : 'To Address'}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Location Section */}

@@ -31,6 +31,7 @@ import firestore from '@react-native-firebase/firestore';
 import DeviceInfo from 'react-native-device-info';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {createOrder, getUserDetails, paymentSuccess} from '../api';
+import Toast from 'react-native-toast-message';
 
 const {height} = Dimensions.get('window');
 
@@ -111,7 +112,7 @@ const WalletScreen = () => {
       );
     };
 
-    const onVerify = orderId => {
+    const onVerify = async orderId => {
       console.log('userData4', userData);
       console.log('Payment Successful for Order ID:', orderId);
       updateStatus(`Payment Successful for Order ID: ${orderId}`, true);
@@ -140,7 +141,7 @@ const WalletScreen = () => {
 
   const startCreateOrder = async () => {
     try {
-      const orderData = {
+      const orderPayload = {
         amount: parseInt(addAmount),
         uid,
         name: userData.name,
@@ -148,58 +149,54 @@ const WalletScreen = () => {
         phone: '8186827673' || userData.phone,
       };
 
-      console.log('createOrder', orderData);
+      console.log('createOrder', orderPayload);
 
-      const response = await createOrder(orderData);
+      const response = await createOrder(orderPayload);
 
-      console.log('response', response.data);
-      setOrderData(response.data);
-      _startCheckout();
+      if (response.data?.payment_session_id && response.data?.order_id) {
+        console.log('response-create-order', response.data);
+
+        const session = new CFSession(
+          response.data.payment_session_id,
+          response.data.order_id,
+          CFEnvironment.SANDBOX,
+        );
+
+        const paymentModes = new CFPaymentComponentBuilder()
+          .add(CFPaymentModes.CARD)
+          .add(CFPaymentModes.UPI)
+          .add(CFPaymentModes.NB)
+          .add(CFPaymentModes.WALLET)
+          .add(CFPaymentModes.PAY_LATER)
+
+          .build();
+
+        const theme = new CFThemeBuilder()
+          .setNavigationBarBackgroundColor('#B82929')
+          .setNavigationBarTextColor('#FFFFFF')
+          .setButtonBackgroundColor('#FFC107')
+          .setButtonTextColor('#FFFFFF')
+          .setPrimaryTextColor('#212121')
+          .setSecondaryTextColor('#757575')
+          .build();
+
+        const dropPayment = new CFDropCheckoutPayment(
+          session,
+          paymentModes,
+          theme,
+        );
+
+        // Store order data for later use
+        setOrderData(response.data);
+
+        // Start payment directly
+        await CFPaymentGatewayService.doPayment(dropPayment);
+      } else {
+        console.error('Invalid order data received:', response.data);
+      }
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Error in startCreateOrder:', error);
     }
-  };
-
-  const _startCheckout = async () => {
-    try {
-      const session = getSession();
-      const paymentModes = new CFPaymentComponentBuilder()
-        .add(CFPaymentModes.CARD)
-        .add(CFPaymentModes.UPI)
-        .add(CFPaymentModes.NB)
-        .add(CFPaymentModes.WALLET)
-        .add(CFPaymentModes.PAY_LATER)
-        .build();
-
-      const theme = new CFThemeBuilder()
-        .setNavigationBarBackgroundColor('#94ee95')
-        .setNavigationBarTextColor('#FFFFFF')
-        .setButtonBackgroundColor('#FFC107')
-        .setButtonTextColor('#FFFFFF')
-        .setPrimaryTextColor('#212121')
-        .setSecondaryTextColor('#757575')
-        .build();
-
-      const dropPayment = new CFDropCheckoutPayment(
-        session,
-        paymentModes,
-        theme,
-      );
-      console.log(JSON.stringify(dropPayment));
-      CFPaymentGatewayService.doPayment(dropPayment);
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  const getSession = () => {
-    const sessionId = orderData.payment_session_id;
-    const orderId = orderData.order_id;
-
-    console.log('Session ID:', sessionId);
-    console.log('Order ID:', orderId);
-
-    return new CFSession(sessionId, orderId, CFEnvironment.SANDBOX);
   };
 
   const paymentOrderStatus = async (addAmount, walletData, uid, userData) => {
@@ -232,7 +229,15 @@ const WalletScreen = () => {
       let data = encodeURIComponent(JSON.stringify(encodeObject));
       const response = await paymentSuccess(data);
       console.log('paymentOrder', response);
-      return response.data;
+      setModalVisible(false);
+      setAddAmount('');
+      Toast.show({
+        type: 'success',
+        text1: 'Wallet Updated Succesfully',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+      });
     } catch (error) {
       console.error('Error in payment order status:', error);
       throw error;

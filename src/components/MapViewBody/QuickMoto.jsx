@@ -109,7 +109,7 @@ const QuickMoto = ({
         </View>
         {isSelected && (
           <TouchableOpacity
-            onPress={() => onBookRide(vehicle, price)} // Pass vehicle and price
+            onPress={() => onBookRide(vehicle, price)}
             style={{
               backgroundColor: '#B82929',
               width: '90%',
